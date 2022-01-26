@@ -1,0 +1,21 @@
+# Ignore all text files
+*.txt
+
+# Ignore all excel files
+*.xlsx
+
+# Ignore all csv files
+*.csv
+
+# Ignore all xml files
+*.xml
+
+# Ignore all Jupyter Notebook files
+*.ipynb
+
+# Ignore all Identifier files
+*.Identifier
+
+# Ignore ipynb_checkpoints
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
