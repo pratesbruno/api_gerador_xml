@@ -14,10 +14,10 @@ from gerador_xml.infos_auxiliares import infos_operadoras, infos_versoes_tiss, i
 
 # Classe principal que é utilizada para gerar o XML
 class GeradorXML():
-    def __init__(self, base_input, tipo_input, operadora, seq_transacao, encoding="ISO-8859-1"):
+    def __init__(self, base_input, operadora, tipo_produto, encoding="ISO-8859-1"):
         self.base_input = base_input
-        self.tipo_input = tipo_input
         self.operadora = operadora
+        self.tipo_produto = tipo_produto
         self.encoding = encoding
         
         # Infos beep
@@ -72,14 +72,11 @@ class GeradorXML():
         self.filename = None
         self.xml_com_namespaces = None
         self.arquivos_xml = []
-        self.mensagens = []
+        self.avisos = []
         
     # Função princial. É preciso indicar o tipo_produto ('lab' ou 'vac') e o xml é gerado
-    def gera_xml(self, tipo_produto, mes=None):
+    def gera_xml(self):
         
-        self.tipo_produto = tipo_produto
-        self.mes = mes
-
         # Gera dataframe a partir do arquivo csv
         self.gera_dataframe_base()
 
@@ -128,10 +125,7 @@ class GeradorXML():
             tree = ET.ElementTree(root)
 
             # Cria arquivo xml
-            if self.mes:
-                caminho = f'{self.operadora}_{self.data_registro_transacao.replace("-","")}_{self.tipo_produto}_{self.mes}_{self.arquivo_xml_atual+1}'
-            else:
-                caminho = f'{self.operadora}_{self.data_registro_transacao.replace("-","")}_{self.tipo_produto}_{self.arquivo_xml_atual+1}'
+            caminho = f'{self.operadora}_{self.data_registro_transacao.replace("-","")}_{self.tipo_produto}_{self.arquivo_xml_atual+1}'
             
             self.arquivo_output = caminho
             self.write_xml(tree)
@@ -142,44 +136,28 @@ class GeradorXML():
             self.arquivos_xml.append(self.xml_com_namespaces)
 
         self.loga_informacoes() 
-        return self.arquivos_xml, len(self.lista_guias_distintas), self.numero_arquivos_xml, self.valor_total_arquivos, self.lista_sequencial_transacao
+        return self.arquivos_xml, len(self.lista_guias_distintas), self.numero_arquivos_xml, self.valor_total_arquivos, self.avisos
             
     def gera_dataframe_base(self):
 
         # Gera dataframe a partir do excel, csv ou sql, e remove os acentos
-        if self.mes:
+        if True:
             sheet_name = f'{self.operadora}_{self.tipo_produto}_{self.mes}'
         else:
             sheet_name = f'{self.operadora}_{self.tipo_produto}'
 
         # Gera a base a partir do tipo de input (excel, csv ou sql)
-        if self.tipo_input == 'excel':
-            self.df_base = pd.read_excel(self.base_input, sheet_name=sheet_name, dtype=str)
+        try:
+            self.df_base = pd.read_csv(self.base_input, dtype=str)
+        except Exception as e:
+            print(str(e))
 
-        elif self.tipo_input == 'csv':
-            try:
-                self.df_base = pd.read_csv(self.base_input, dtype=str)
-            except Exception as e:
-                print(str(e))
-            
-        elif self.tipo_input == 'sql':
-            self.df_base = self.base_input
-            # Filtra por tipo produto
-            if self.tipo_produto == 'lab':
-                self.df_base = self.df_base[self.df_base['tipo_produto']=='laboratories']
-            elif self.tipo_produto == 'vac':
-                self.df_base = self.df_base[self.df_base['tipo_produto']=='vaccines']
-        
         # Remove acentos
         self.df_base = self.df_base.applymap(remover_acento)
 
         # Altera nome das colunas e remove as que não serão usadas
-        if self.tipo_input == 'excel' or self.tipo_input == 'csv':
-            self.df_base.columns = [de_para_colunas_sheets_xml.get(col.lower().strip(),"Remover") for col in self.df_base.columns]
-            self.df_base.drop('Remover',axis=1, inplace=True)
-        elif self.tipo_input == 'sql':
-            self.df_base['conselhoProfissional'] = self.conselhoProfissional
-            self.df_base = self.df_base[colunas_utilizadas]
+        self.df_base.columns = [de_para_colunas_sheets_xml.get(col.lower().strip(),"Remover") for col in self.df_base.columns]
+        self.df_base.drop('Remover',axis=1, inplace=True)
         
         # Gera um número único para o numeroGuiaPrestador a partir do voucher e o index
         # (pode existir números repetidos em arquivos diferentes - isso pode ser um problema?)
@@ -192,14 +170,14 @@ class GeradorXML():
             self.df_base['senha'] = 'nan'
             msg = 'ATENÇÃO: Coluna de senhas de autorização não encontrada. Será assumido que nenhum procedimento precisa de senha.\n'
             print(msg)
-            self.mensagens.append(msg)
+            self.avisos.append(msg)
 
         # Se não houver coluna de atendimentoRN no csv, assume que nenhum atendimento é de RN
         if 'atendimentoRN' not in self.df_base.columns:
             self.df_base['atendimentoRN'] = 'N'
             msg = 'ATENÇÃO: Coluna de atendimentoRN não encontrada. Será assumido que nenhum atendimento foi de recém-nato.\n'
             print(msg)
-            self.mensagens.append(msg)
+            self.avisos.append(msg)
         
         # Caso a operadora seja Omint, usa o numero de carteirinha como NumGuiaOperadora
         if self.operadora[:5] == 'omint':

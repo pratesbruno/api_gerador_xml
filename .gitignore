@@ -1,6 +1,3 @@
-# Ignore all text files
-*.txt
-
 # Ignore all excel files
 *.xlsx
 
@@ -19,3 +16,7 @@
 # Ignore ipynb_checkpoints
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
+
+# Ignore pycache
+__pycache__
+*.pyc
