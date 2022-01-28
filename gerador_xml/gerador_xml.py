@@ -3,22 +3,25 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 from datetime import datetime, date, timedelta
 import hashlib
-#import os
+import io
 import math
 import time
 
 # Imports das funcoes e infos auxiliares
 from gerador_xml.funcoes_auxiliares import _pretty_print, converte_data_formato_correto, adiciona_30_dias, \
                                converte_valor_formato_correto, remover_acento, check_duplicadas_num_guia_prestador
+from gerador_xml.registrar_na_gcp import registrar_na_gcp
 from gerador_xml.infos_auxiliares import infos_operadoras, infos_versoes_tiss, infos_beep, de_para_colunas_sheets_xml, colunas_utilizadas
+
 
 # Classe principal que é utilizada para gerar o XML
 class GeradorXML():
-    def __init__(self, base_input, operadora, tipo_produto, encoding="ISO-8859-1"):
+    def __init__(self, base_input, operadora, tipo_produto, encoding="ISO-8859-1", usuario=None):
         self.base_input = base_input
         self.operadora = operadora
         self.tipo_produto = tipo_produto
         self.encoding = encoding
+        self.usuario = None
         
         # Infos beep
         self.nome_beep = infos_beep['beep_comany_name']
@@ -66,7 +69,6 @@ class GeradorXML():
         self.hash = None
         self.epilogo = None
         self.arquivo_output = None
-        self.tipo_produto = None
         self.mes = None
         self.diretorio = None
         self.filename = None
@@ -135,8 +137,8 @@ class GeradorXML():
             
             self.arquivos_xml.append(self.xml_com_namespaces)
 
-        self.loga_informacoes() 
-        return self.arquivos_xml, len(self.lista_guias_distintas), self.numero_arquivos_xml, self.valor_total_arquivos, self.avisos
+        self.registra_infos_gcp() 
+        return self.arquivos_xml, len(self.lista_guias_distintas), self.numero_arquivos_xml, self.valor_total_arquivos, self.avisos, self.lista_sequencial_transacao
             
     def gera_dataframe_base(self):
 
@@ -443,14 +445,26 @@ class GeradorXML():
         self.xml_com_namespaces = self.xml_com_namespaces.replace('<ans:mensagemTISS>', root_string)
         self.xml_com_namespaces = f"<?xml version='1.0' encoding='{self.encoding}'?>\n" + self.xml_com_namespaces
 
-    def loga_informacoes(self):
-        # Loga infos do número de arquivos gerados e do numero de guias distintas nos arquivos
+    def registra_infos_gcp(self):
+
+        # Salva os arquivos XML no bucket da GCP
+        for i in range(len(self.arquivos_xml)):
+            arquivo_na_memoria = io.StringIO(self.arquivos_xml[i])
+            data_geracao_xml = datetime.now().strftime("%Y%m%d")
+            subpasta = f'arquivos-xml/{self.operadora}/{self.data_registro_transacao}/{self.tipo_produto}/'
+            nome_arquivo = f'{self.operadora}_{data_geracao_xml}_{self.tipo_produto}_{self.lista_sequencial_transacao[i]}_{i+1}.xml'
+            registrar_na_gcp(arquivo_na_memoria,'log-portal-ss',f'{subpasta}{nome_arquivo}')
+
+
+        # Gera json
+
+
+        # Printa infos do número de arquivos gerados e do numero de guias distintas nos arquivos
         if self.numero_arquivos_xml == 1:
             msg_inicial = "Foi gerado 1 arquivo xml, referente a "
         else:
             msg_inicial = f"Foram gerados {self.numero_arquivos_xml} arquivos xml, referentes a "
         msg_arquivos_gerados = f"{msg_inicial}{len(self.lista_guias_distintas)} guias distintas."
         print(msg_arquivos_gerados)
-
         msg_valor_total = f"Valor total dos xml gerados: R$ {'{0:,.2f}'.format(float(self.df_totais.sum()[1]))}\n"
         print(msg_valor_total)
