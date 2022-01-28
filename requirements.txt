@@ -16,3 +16,6 @@ uvicorn
 datetime
 unidecode
 python-multipart
+
+#gcp
+google-cloud-storage

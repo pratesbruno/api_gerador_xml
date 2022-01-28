@@ -39,7 +39,7 @@ async def gerar_xml(file: UploadFile=File(...), operadora: str = Form(...), tipo
 
     # Gera os XML
     try:
-        arquivos_xml, num_guias, numero_arquivos_xml, valor_total_arquivos, avisos = gerador.gera_xml()
+        arquivos_xml, num_guias, numero_arquivos_xml, valor_total_arquivos, avisos, lista_seq_transacao = gerador.gera_xml()
         print('\nGeração de XMLs finalizada.')
  
         return {"mensagem": "Arquivo(s) XML gerado(s) com sucesso.",
@@ -47,7 +47,8 @@ async def gerar_xml(file: UploadFile=File(...), operadora: str = Form(...), tipo
                 "num_guias" : num_guias,
                 "numero_arquivos_xml" : numero_arquivos_xml,
                 "valor_total_arquivos" : valor_total_arquivos,
-                "avisos" : avisos}
+                "avisos" : avisos,
+                "lista_seq_transacao" : lista_seq_transacao}
 
     except Exception as e:
         print('A instância do geradorXML foi criada, mas ocorreu um erro ao tentar gerar os XMLs.')
