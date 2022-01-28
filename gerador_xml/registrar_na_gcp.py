@@ -6,7 +6,7 @@ def upload_to_bucket(blob_name, path_to_file, bucket_name):
 
     # Explicitly use service account credentials by specifying the private key
     # file.
-    storage_client = storage.Client.from_service_account_json('./gerador-xml-dfffc2276183.json')
+    storage_client = storage.Client.from_service_account_json('./credentials.json')
 
     bucket = storage_client.get_bucket(bucket_name)
     blob = bucket.blob(blob_name)
@@ -23,7 +23,7 @@ def upload_to_bucket(blob_name, path_to_file, bucket_name):
 
 
 def registrar_na_gcp(buffer, bucket, filename):
-    storage_client = storage.Client.from_service_account_json('./gerador-xml-dfffc2276183.json')
+    storage_client = storage.Client.from_service_account_json('./credentials.json')
     bucket = storage_client.get_bucket(bucket)
     blob = bucket.blob(filename)
     blob.upload_from_string(buffer.getvalue(),content_type='application/xml')
