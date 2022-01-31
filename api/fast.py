@@ -19,7 +19,7 @@ def index():
 
 
 @app.post("/gerar_xml")
-async def gerar_xml(file: UploadFile=File(...), operadora: str = Form(...), tipo_produto: str = Form(...)):
+async def gerar_xml(file: UploadFile=File(...), operadora: str = Form(...), tipo_produto: str = Form(...), usuario: str = Form(...)):
     # Gera o(s) arquivo(s) XML a partir dos inputs do usuário.
 
     arquivo_lido = await file.read()
@@ -27,7 +27,7 @@ async def gerar_xml(file: UploadFile=File(...), operadora: str = Form(...), tipo
     data = StringIO(s) 
 
     try:
-        gerador = GeradorXML(base_input=data, operadora=operadora, tipo_produto=tipo_produto)
+        gerador = GeradorXML(base_input=data, operadora=operadora, tipo_produto=tipo_produto, usuario=usuario)
         print('Instância do geradorXML criada. Gerando os XMLs...')
 
     except Exception as e:
@@ -41,6 +41,8 @@ async def gerar_xml(file: UploadFile=File(...), operadora: str = Form(...), tipo
     try:
         arquivos_xml, num_guias, numero_arquivos_xml, valor_total_arquivos, avisos, lista_seq_transacao = gerador.gera_xml()
         print('\nGeração de XMLs finalizada.')
+
+
  
         return {"mensagem": "Arquivo(s) XML gerado(s) com sucesso.",
                 "arquivos_xml" : arquivos_xml,

@@ -1,4 +1,5 @@
 from google.cloud import storage
+import json
 
 
 def upload_to_bucket(blob_name, path_to_file, bucket_name):
@@ -13,18 +14,21 @@ def upload_to_bucket(blob_name, path_to_file, bucket_name):
 
     blob.upload_from_filename(path_to_file)
 
-
-    #blob.upload_from_string(
-    #                        uploaded_file.read(),
-    #                        content_type=uploaded_file.content_type)
-
-    #returns a public url
     return blob.public_url
 
 
-def registrar_na_gcp(buffer, bucket, filename):
+def registrar_na_gcp(content, bucket, filename, type):
+    '''Registra infos (xml ou json) na gcp'''
+
     storage_client = storage.Client.from_service_account_json('./credentials.json')
     bucket = storage_client.get_bucket(bucket)
     blob = bucket.blob(filename)
-    blob.upload_from_string(buffer.getvalue(),content_type='application/xml')
+    if type == 'xml':
+        data = content.getvalue()
+        content_type='application/xml'
+    elif type == 'json':
+        data = json.dumps(content, default=str)
+        content_type='application/json'
+    blob.upload_from_string(data, content_type)
 
+    return blob.public_url

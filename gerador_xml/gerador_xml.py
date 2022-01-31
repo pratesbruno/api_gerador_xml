@@ -21,7 +21,7 @@ class GeradorXML():
         self.operadora = operadora
         self.tipo_produto = tipo_produto
         self.encoding = encoding
-        self.usuario = None
+        self.usuario = usuario
         
         # Infos beep
         self.nome_beep = infos_beep['beep_comany_name']
@@ -62,6 +62,7 @@ class GeradorXML():
         self.valor_total_arquivos = None
         self.lista_guias_distintas = None
         self.numero_arquivos_xml = None
+        self.lista_valor_total_de_cada_arquivo = []
         self.arquivo_xml_atual = None
         self.cabecalho = None
         self.prestador_para_operadora = None
@@ -258,20 +259,29 @@ class GeradorXML():
     
     def gera_guias_tiss(self, df_base):
         guias = ET.Element('guiasTISS')
+        # Zera a variavel que contabiliza o valor total do arquivo xml corrente
+        self.valor_total_arquivo_corrente = 0
+
         # Gera as guias de acordo com o número do arquivo xml que está sendo gerado (max 99 guias por arquivo)
         for guia_atual in self.lista_guias_distintas[(self.arquivo_xml_atual*99):(self.arquivo_xml_atual+1)*99]:
-            # Pega o primeiro procedimento referente a guia_atual
+            
+            # Pega a linha referente ao primeiro procedimento da guia_atual
             row = self.df_base[self.df_base['numeroGuiaOperadora']==guia_atual].iloc[0]
+
+            # Gera os elementos XML
             guia = ET.SubElement(guias, 'guiaSP-SADT')
             self.gera_cabecalho_guia(guia,row)
             self.gera_dados_autorizacao(guia,row)            
-            self.gera_dados_beneficiario(guia, row)            
+            self.gera_dados_beneficiario(guia, row)
             self.gera_dados_solicitante(guia, row)            
             self.gera_dados_solicitacao(guia, row)            
             self.gera_dados_executante(guia, row)            
             self.gera_dados_atendimento(guia, row)            
             self.gera_procedimentos_executados(guia, row, guia_atual)
             self.gera_valor_total(guia, row, guia_atual) 
+
+        # Registra o valor total do arquivo corrente
+        self.lista_valor_total_de_cada_arquivo.append(self.valor_total_arquivo_corrente)
         return guias
 
     def gera_cabecalho_guia(self, guia, row):
@@ -417,8 +427,10 @@ class GeradorXML():
         valorGasesMedicinais = ET.SubElement(valorTotal, 'valorGasesMedicinais')
         valorGasesMedicinais.text = '0'
         valorTotalGeral = ET.SubElement(valorTotal, 'valorTotalGeral')
-        valorTotalGeral.text = str(self.df_totais.loc[guia_atual,'valorTotal'].round(2))
-        
+        valor_guia_corrente = self.df_totais.loc[guia_atual,'valorTotal'].round(2)
+        valorTotalGeral.text = str(valor_guia_corrente)
+        self.valor_total_arquivo_corrente += valor_guia_corrente
+
     def gera_epilogo(self):
         self.epilogo = ET.Element('epilogo')
         self.gera_hash()
@@ -446,18 +458,37 @@ class GeradorXML():
         self.xml_com_namespaces = f"<?xml version='1.0' encoding='{self.encoding}'?>\n" + self.xml_com_namespaces
 
     def registra_infos_gcp(self):
+        '''Salva infos no bucket da GCP'''
 
-        # Salva os arquivos XML no bucket da GCP
+        bucket = 'log-portal-ss'
+        
         for i in range(len(self.arquivos_xml)):
             arquivo_na_memoria = io.StringIO(self.arquivos_xml[i])
             data_geracao_xml = datetime.now().strftime("%Y%m%d")
-            subpasta = f'arquivos-xml/{self.operadora}/{self.data_registro_transacao}/{self.tipo_produto}/'
             nome_arquivo = f'{self.operadora}_{data_geracao_xml}_{self.tipo_produto}_{self.lista_sequencial_transacao[i]}_{i+1}.xml'
-            registrar_na_gcp(arquivo_na_memoria,'log-portal-ss',f'{subpasta}{nome_arquivo}')
 
+            # Registra arquivo XML na GCP
+            subpasta_xml = f'arquivos-xml/{self.operadora}/{self.data_registro_transacao}/{self.tipo_produto}/'
+            url_gcp = registrar_na_gcp(content=arquivo_na_memoria, bucket=bucket, filename=f'{subpasta_xml}{nome_arquivo}', type='xml')
 
-        # Gera json
-
+            # Registra json com infos do usuário que gerou o arquivo, o nome do arquivo, o link na gcp, a data, o valor total do arquivo,
+            # e o valor total da geração (somando os valores dos arquivos que foram subdivididos para atender o limite de 99 guias)
+            json_object = {
+                'tipo_evento' : 'gerar_xml',
+                'resultado_evento' : 'sucesso',
+                'mensagem_erro' : None,
+                'usuario' : self.usuario,
+                'data' : datetime.now(),
+                'operadora' : self.operadora,
+                'tipo_produto' : self.tipo_produto,
+                'valor_arquivo' : self.lista_valor_total_de_cada_arquivo[i],
+                'nome_arquivo' : nome_arquivo,
+                'url_gcp': url_gcp,
+                'valor_total_gerado' : '{0:,.2f}'.format(self.valor_total_arquivos)
+            }
+             # Registra arquivo json na GCP
+            subpasta_json = f'eventos/{self.operadora}/{self.data_registro_transacao}/{self.tipo_produto}/'
+            registrar_na_gcp(content=json_object, bucket=bucket, filename=f'{subpasta_json}{nome_arquivo}', type='json')
 
         # Printa infos do número de arquivos gerados e do numero de guias distintas nos arquivos
         if self.numero_arquivos_xml == 1:
@@ -466,5 +497,5 @@ class GeradorXML():
             msg_inicial = f"Foram gerados {self.numero_arquivos_xml} arquivos xml, referentes a "
         msg_arquivos_gerados = f"{msg_inicial}{len(self.lista_guias_distintas)} guias distintas."
         print(msg_arquivos_gerados)
-        msg_valor_total = f"Valor total dos xml gerados: R$ {'{0:,.2f}'.format(float(self.df_totais.sum()[1]))}\n"
+        msg_valor_total = f"Valor total dos xml gerados: R$ {'{0:,.2f}'.format(self.valor_total_arquivos)}\n"
         print(msg_valor_total)
