@@ -481,13 +481,13 @@ class GeradorXML():
                 'data' : datetime.now(),
                 'operadora' : self.operadora,
                 'tipo_produto' : self.tipo_produto,
-                'valor_arquivo' : self.lista_valor_total_de_cada_arquivo[i],
+                'valor_arquivo' : '{0:.2f}'.format(self.lista_valor_total_de_cada_arquivo[i]),
                 'nome_arquivo' : nome_arquivo,
                 'url_gcp': url_gcp,
-                'valor_total_gerado' : '{0:,.2f}'.format(self.valor_total_arquivos)
+                'valor_total_gerado' : '{0:.2f}'.format(self.valor_total_arquivos)
             }
              # Registra arquivo json na GCP
-            subpasta_json = f'eventos/{self.operadora}/{self.data_registro_transacao}/{self.tipo_produto}/'
+            subpasta_json = 'eventos/'
             registrar_na_gcp(content=json_object, bucket=bucket, filename=f'{subpasta_json}{nome_arquivo}', type='json')
 
         # Printa infos do número de arquivos gerados e do numero de guias distintas nos arquivos

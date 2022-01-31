@@ -100,6 +100,28 @@ infos_operadoras = {
         "tipo_atendimento": "05"
     },
     
+    'caberj' : {
+        "registroANS": "24361",
+        "CNES": "9881077",
+        "CNPJ": None,
+        "tiss_version": "3.05.00",
+        "codigoPrestadorNaOperadora": "155822",
+        "conselho_profissional": "06",
+        "identificacao_prestador" : "codigoPrestadorNaOperadora",
+        "numero_caracteres_carteirinha": None
+    },
+
+    'caberj_integral_saude' : {
+        "registroANS": "415774",
+        "CNES": "9881077",
+        "CNPJ": None,
+        "tiss_version": "3.05.00",
+        "codigoPrestadorNaOperadora": "155822",
+        "conselho_profissional": "06",
+        "identificacao_prestador" : "codigoPrestadorNaOperadora",
+        "numero_caracteres_carteirinha": None
+    },
+
     'camarj' : {
         "registroANS": "418820",
         "CNES": "9881077",

@@ -2,6 +2,8 @@ from fastapi import FastAPI, File, UploadFile,Form
 from fastapi.middleware.cors import CORSMiddleware
 from gerador_xml.gerador_xml import GeradorXML
 from io import StringIO
+from datetime import datetime
+from gerador_xml.registrar_na_gcp import registrar_na_gcp
    
 app = FastAPI()
 
@@ -26,24 +28,44 @@ async def gerar_xml(file: UploadFile=File(...), operadora: str = Form(...), tipo
     s=str(arquivo_lido,'utf-8')
     data = StringIO(s) 
 
+    bucket = 'log-portal-ss'
+    data_evento = datetime.now().strftime("%Y%m%d_%H%M%S")
+    subpasta_json = 'eventos/'
+
     try:
         gerador = GeradorXML(base_input=data, operadora=operadora, tipo_produto=tipo_produto, usuario=usuario)
         print('Instância do geradorXML criada. Gerando os XMLs...')
 
     except Exception as e:
-        print('\nNão foi possível criar uma instância do geradorXML.')
+        msg_erro = 'Não foi possível criar uma instância do geradorXML.'
+        print('\n' + msg_erro)
         print(e)
+
+        json_object = {
+            'tipo_evento' : 'gerar_xml',
+            'resultado_evento' : 'falha',
+            'mensagem_erro' : f'{msg_erro} - Erro: {e}',
+            'usuario' : usuario,
+            'data' : datetime.now(),
+            'operadora' : operadora,
+            'tipo_produto' : tipo_produto,
+            'valor_arquivo' : None,
+            'nome_arquivo' : None,
+            'url_gcp': None,
+            'valor_total_gerado' : None
+        }
+            # Registra arquivo json na GCP
+        nome_arquivo_json = f'{operadora}_{data_evento}_{tipo_produto}_falha.json'
+        registrar_na_gcp(content=json_object, bucket=bucket, filename=f'{subpasta_json}{nome_arquivo_json}', type='json')
+        
         return {"mensagem": "Não foi possível criar uma instância do geradorXML.",
                 "exception" : str(e)}
-    
 
     # Gera os XML
     try:
         arquivos_xml, num_guias, numero_arquivos_xml, valor_total_arquivos, avisos, lista_seq_transacao = gerador.gera_xml()
         print('\nGeração de XMLs finalizada.')
 
-
- 
         return {"mensagem": "Arquivo(s) XML gerado(s) com sucesso.",
                 "arquivos_xml" : arquivos_xml,
                 "num_guias" : num_guias,
@@ -53,7 +75,26 @@ async def gerar_xml(file: UploadFile=File(...), operadora: str = Form(...), tipo
                 "lista_seq_transacao" : lista_seq_transacao}
 
     except Exception as e:
-        print('A instância do geradorXML foi criada, mas ocorreu um erro ao tentar gerar os XMLs.')
+        msg_erro = 'A instância do geradorXML foi criada, mas ocorreu um erro ao tentar gerar os XMLs.'
+        print('\n' + msg_erro)
         print(e)
+
+        json_object = {
+            'tipo_evento' : 'gerar_xml',
+            'resultado_evento' : 'falha',
+            'mensagem_erro' : f'{msg_erro} - Erro: {e}',
+            'usuario' : usuario,
+            'data' : datetime.now(),
+            'operadora' : operadora,
+            'tipo_produto' : tipo_produto,
+            'valor_arquivo' : None,
+            'nome_arquivo' : None,
+            'url_gcp': None,
+            'valor_total_gerado' : None
+        }
+            # Registra arquivo json na GCP
+        nome_arquivo_json = f'{operadora}_{data_evento}_{tipo_produto}_falha.json'
+        registrar_na_gcp(content=json_object, bucket=bucket, filename=f'{subpasta_json}{nome_arquivo_json}', type='json')
+
         return {"mensagem": 'Ocorreu um erro ao tentar gerar os XMLs.',
                 "exception" : str(e)}
