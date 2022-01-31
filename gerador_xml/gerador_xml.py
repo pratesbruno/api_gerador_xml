@@ -461,15 +461,20 @@ class GeradorXML():
         '''Salva infos no bucket da GCP'''
 
         bucket = 'log-portal-ss'
-        
+        data_geracao_xml = datetime.now().strftime("%Y%m%d")
+
+        # Registra arquivo CSV na GCP
+        subpasta_csv = f'arquivos-csv/{self.operadora}/{self.data_registro_transacao}/{self.tipo_produto}/'
+        raiz_nome_arquivo = f'{self.operadora}_{data_geracao_xml}_{self.tipo_produto}'
+        url_gcp_csv = registrar_na_gcp(content=self.base_input, bucket=bucket, filename=f'{subpasta_csv}{raiz_nome_arquivo}_{self.lista_sequencial_transacao[0]}.csv', type='csv')    
+
         for i in range(len(self.arquivos_xml)):
             arquivo_na_memoria = io.StringIO(self.arquivos_xml[i])
-            data_geracao_xml = datetime.now().strftime("%Y%m%d")
-            nome_arquivo = f'{self.operadora}_{data_geracao_xml}_{self.tipo_produto}_{self.lista_sequencial_transacao[i]}_{i+1}.xml'
+            nome_arquivo = f'{raiz_nome_arquivo}_{self.lista_sequencial_transacao[i]}_{i+1}'
 
             # Registra arquivo XML na GCP
             subpasta_xml = f'arquivos-xml/{self.operadora}/{self.data_registro_transacao}/{self.tipo_produto}/'
-            url_gcp = registrar_na_gcp(content=arquivo_na_memoria, bucket=bucket, filename=f'{subpasta_xml}{nome_arquivo}', type='xml')
+            url_gcp_xml = registrar_na_gcp(content=arquivo_na_memoria, bucket=bucket, filename=f'{subpasta_xml}{nome_arquivo}.xml', type='xml')
 
             # Registra json com infos do usuário que gerou o arquivo, o nome do arquivo, o link na gcp, a data, o valor total do arquivo,
             # e o valor total da geração (somando os valores dos arquivos que foram subdivididos para atender o limite de 99 guias)
@@ -482,14 +487,17 @@ class GeradorXML():
                 'operadora' : self.operadora,
                 'tipo_produto' : self.tipo_produto,
                 'valor_arquivo' : '{0:.2f}'.format(self.lista_valor_total_de_cada_arquivo[i]),
-                'nome_arquivo' : nome_arquivo,
-                'url_gcp': url_gcp,
+                'nome_arquivo_xml' : nome_arquivo,
+                'url_gcp_xml': url_gcp_xml,
+                'url_gcp_csv' : url_gcp_csv,
                 'valor_total_gerado' : '{0:.2f}'.format(self.valor_total_arquivos)
             }
+
              # Registra arquivo json na GCP
             subpasta_json = 'eventos/'
-            nome_arquivo_json = f'{self.operadora}_{data_geracao_xml}_{self.tipo_produto}_{self.lista_sequencial_transacao[i]}_{i+1}_sucesso.json'
+            nome_arquivo_json = f'{raiz_nome_arquivo}_{self.lista_sequencial_transacao[i]}_{i+1}_sucesso.json'
             registrar_na_gcp(content=json_object, bucket=bucket, filename=f'{subpasta_json}{nome_arquivo_json}', type='json')
+
 
         # Printa infos do número de arquivos gerados e do numero de guias distintas nos arquivos
         if self.numero_arquivos_xml == 1:

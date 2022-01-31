@@ -18,7 +18,7 @@ def upload_to_bucket(blob_name, path_to_file, bucket_name):
 
 
 def registrar_na_gcp(content, bucket, filename, type):
-    '''Registra infos (xml ou json) na gcp'''
+    '''Registra infos (xml, csv ou json) na gcp'''
 
     storage_client = storage.Client.from_service_account_json('./credentials.json')
     bucket = storage_client.get_bucket(bucket)
@@ -26,6 +26,9 @@ def registrar_na_gcp(content, bucket, filename, type):
     if type == 'xml':
         data = content.getvalue()
         content_type='application/xml'
+    elif type == 'csv':
+        data = content.getvalue()
+        content_type='text/csv'
     elif type == 'json':
         data = json.dumps(content, default=str)
         content_type='application/json'

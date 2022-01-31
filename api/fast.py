@@ -50,8 +50,9 @@ async def gerar_xml(file: UploadFile=File(...), operadora: str = Form(...), tipo
             'operadora' : operadora,
             'tipo_produto' : tipo_produto,
             'valor_arquivo' : None,
-            'nome_arquivo' : None,
-            'url_gcp': None,
+            'nome_arquivo_xml' : None,
+            'url_gcp_xml': None,
+            'url_gcp_csv' : None,
             'valor_total_gerado' : None
         }
             # Registra arquivo json na GCP
@@ -88,11 +89,13 @@ async def gerar_xml(file: UploadFile=File(...), operadora: str = Form(...), tipo
             'operadora' : operadora,
             'tipo_produto' : tipo_produto,
             'valor_arquivo' : None,
-            'nome_arquivo' : None,
-            'url_gcp': None,
+            'nome_arquivo_xml' : None,
+            'url_gcp_xml': None,
+            'url_gcp_csv' : None,
             'valor_total_gerado' : None
         }
-            # Registra arquivo json na GCP
+        
+        # Registra arquivo json na GCP
         nome_arquivo_json = f'{operadora}_{data_evento}_{tipo_produto}_falha.json'
         registrar_na_gcp(content=json_object, bucket=bucket, filename=f'{subpasta_json}{nome_arquivo_json}', type='json')
 
