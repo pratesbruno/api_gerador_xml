@@ -101,8 +101,8 @@ infos_operadoras = {
     },
     
     'caberj' : {
-        "registroANS": "24361",
-        "CNES": "32436",
+        "registroANS": "324361",
+        "CNES": "9881077",
         "CNPJ": None,
         "tiss_version": "3.05.00",
         "codigoPrestadorNaOperadora": "155822",
