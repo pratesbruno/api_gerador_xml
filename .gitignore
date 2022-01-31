@@ -1,5 +1,6 @@
 # Ignore GCP credentials
 gerador-xml-dfffc2276183.json
+credentials.json
 
 # Ignore all excel files
 *.xlsx
