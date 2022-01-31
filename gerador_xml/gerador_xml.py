@@ -488,7 +488,8 @@ class GeradorXML():
             }
              # Registra arquivo json na GCP
             subpasta_json = 'eventos/'
-            registrar_na_gcp(content=json_object, bucket=bucket, filename=f'{subpasta_json}{nome_arquivo}', type='json')
+            nome_arquivo_json = f'{self.operadora}_{data_geracao_xml}_{self.tipo_produto}_{self.lista_sequencial_transacao[i]}_{i+1}_sucesso.json'
+            registrar_na_gcp(content=json_object, bucket=bucket, filename=f'{subpasta_json}{nome_arquivo_json}', type='json')
 
         # Printa infos do número de arquivos gerados e do numero de guias distintas nos arquivos
         if self.numero_arquivos_xml == 1:
